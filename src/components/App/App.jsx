@@ -75,7 +75,7 @@ export default function App() {
 
   const handleShowLargeImg = largeImage => {
     setLargeImage(largeImage);
-    isShowModal(true);
+    setIsShowModal(true);
   };
 
   const togleModal = () => {
