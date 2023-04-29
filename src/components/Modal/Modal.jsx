@@ -1,40 +1,38 @@
-import { Component } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 
 const modalRoot = document.querySelector('#modal-root');
 
-export default class Modal extends Component {
-  componentDidMount() {
-    document.addEventListener('keydown', this.handleKeyClose);
-  }
+export default function Modal({ togleModal, largeImage }) {
+  useEffect(() => {
+    const handleKeyClose = e => {
+      if (e.keyCode === 27) {
+        togleModal();
+      }
+    };
 
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleKeyClose);
-  }
+    document.addEventListener('keydown', handleKeyClose);
 
-  handleKeyClose = e => {
-    if (e.keyCode === 27) {
-      this.props.togleModal();
-    }
-  };
+    return () => {
+      document.removeEventListener('keydown', handleKeyClose);
+    };
+  }, [togleModal]);
 
-  handleClickOverlayClose = e => {
+  const handleClickOverlayClose = e => {
     if (e.target === e.currentTarget) {
-      this.props.togleModal();
+      togleModal();
     }
   };
 
-  render() {
-    return createPortal(
-      <div className="Overlay" onClick={this.handleClickOverlayClose}>
-        <div className="Modal">
-          <img src={this.props.largeImage} alt="large_image" />
-        </div>
-      </div>,
-      modalRoot
-    );
-  }
+  return createPortal(
+    <div className="Overlay" onClick={handleClickOverlayClose}>
+      <div className="Modal">
+        <img src={largeImage} alt="large_image" />
+      </div>
+    </div>,
+    modalRoot
+  );
 }
 
 Modal.propTypes = {

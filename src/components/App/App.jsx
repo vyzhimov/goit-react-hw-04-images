@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import { animateScroll as scroll } from 'react-scroll';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,107 +12,87 @@ import { fetchPhotos } from 'services/pixabay-api';
 import { Button } from 'components/Button/Button';
 import Modal from 'components/Modal/Modal';
 
-export default class App extends Component {
-  state = {
-    searchQuery: '',
-    photoList: [],
-    page: 1,
-    status: 'idle',
-    error: '',
-    isLoading: false,
-    isShowBtn: false,
-    isShowModal: false,
-    largeImage: null,
-  };
+export default function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [photoList, setPhotoList] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isShowBtn, setIsShowBtn] = useState(false);
+  const [isShowModal, setIsShowModal] = useState(false);
+  const [largeImage, setLargeImage] = useState(null);
 
-  async componentDidUpdate(prevProps, prevState) {
-    const prevQuery = prevState.searchQuery;
-    const nextQuery = this.state.searchQuery;
-    const currentPage = prevState.page;
-    const nextPage = this.state.page;
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
+    }
 
-    if ((prevQuery !== nextQuery || currentPage) !== nextPage) {
-      this.setState({ isLoading: true });
+    async function fetchImages() {
       try {
-        const nextPhotos = await fetchPhotos(nextQuery, nextPage);
+        const nextPhotos = await fetchPhotos(searchQuery, page);
+
         if (nextPhotos.hits.length === 0) {
-          this.setState({ status: 'rejected' });
+          setStatus('rejected');
         } else {
           const totalPage = Math.ceil(nextPhotos.totalHits / 12);
 
-          this.setState(prev => ({
-            photoList: [...prev.photoList, ...nextPhotos.hits],
-            status: 'resolved',
-            isShowBtn: this.state.page !== totalPage,
-            isShowModal: false,
-          }));
+          setPhotoList(prev => [...prev, ...nextPhotos.hits]);
+          setStatus('resolved');
+          setIsShowBtn(page !== totalPage);
+          setIsShowModal(false);
+        }
 
-          if (nextPage !== 1) {
-            this.handleScrollToBottom();
-          }
+        if (page !== 1) {
+          handleScrollToBottom();
         }
       } catch (error) {
-        this.setState({
-          error: `Sorry, search error. Try reloading the page! `,
-          status: '',
-        });
+        setError('Sorry, search error. Try reloading the page!');
+        setStatus('');
       } finally {
-        this.setState({ isLoading: false });
+        setIsLoading(false);
       }
     }
-  }
 
-  handleScrollToBottom = () => {
+    setIsLoading(true);
+    fetchImages();
+  }, [searchQuery, page]);
+
+  const handleScrollToBottom = () => {
     scroll.scrollToBottom();
   };
 
-  handleFormSubmit = searchQuery => {
-    this.setState({
-      searchQuery,
-      photoList: [],
-      page: 1,
-      isShowBtn: false,
-    });
+  const handleFormSubmit = searchQuery => {
+    setSearchQuery(searchQuery);
+    setPhotoList([]);
+    setPage(1);
+    setIsShowBtn(false);
   };
 
-  handleLoadMore = () => {
-    this.setState(prev => ({ page: prev.page + 1 }));
+  const handleLoadMore = () => {
+    setPage(prev => prev + 1);
   };
 
-  handleShowLargeImg = largeImage => {
-    this.setState({ largeImage, isShowModal: true });
+  const handleShowLargeImg = largeImage => {
+    setLargeImage(largeImage);
+    isShowModal(true);
   };
 
-  togleModal = () => {
-    this.setState(({ isShowModal }) => ({ isShowModal: !isShowModal }));
+  const togleModal = () => {
+    setIsShowModal(prev => !prev);
   };
 
-  render() {
-    const { handleFormSubmit, handleShowLargeImg, handleLoadMore, togleModal } =
-      this;
-    const {
-      photoList,
-      status,
-      error,
-      isLoading,
-      isShowBtn,
-      isShowModal,
-      largeImage,
-    } = this.state;
-    return (
-      <div className="App">
-        <Searchbar onSubmit={handleFormSubmit} />
-        {status === 'idle' && <PixabayPlug />}
-        {status === 'rejected' && <FindError />}
-        <ImageGallery photos={photoList} showModal={handleShowLargeImg} />
-        {error && <h1 style={{ margin: '0 auto' }}>{error}</h1>}
-        {isLoading && <IsLoading />}
-        {isShowBtn && <Button load={handleLoadMore} />}
-        {isShowModal && (
-          <Modal togleModal={togleModal} largeImage={largeImage} />
-        )}
-        <ToastContainer autoClose={2000} />
-      </div>
-    );
-  }
+  return (
+    <div className="App">
+      <Searchbar onSubmit={handleFormSubmit} />
+      {status === 'idle' && <PixabayPlug />}
+      {status === 'rejected' && <FindError />}
+      <ImageGallery photos={photoList} showModal={handleShowLargeImg} />
+      {error && <h1 style={{ margin: '0 auto' }}>{error}</h1>}
+      {isLoading && <IsLoading />}
+      {isShowBtn && <Button load={handleLoadMore} />}
+      {isShowModal && <Modal togleModal={togleModal} largeImage={largeImage} />}
+      <ToastContainer autoClose={2000} />
+    </div>
+  );
 }
